@@ -16,10 +16,38 @@ Read `docs/TECHNICAL_DEBT.md` for known issues.
 
 ## Teaching approach — how this project teaches C++
 
-The user is learning C++ while building. Every code change should be accompanied by:
-- Why this approach and not another (e.g., `reinterpret_cast` vs C-style cast)
-- What the C++ standard says about this (e.g., strict aliasing, alignment rules)
-- Common pitfalls and how we avoid them
+The user is learning C++ while building. This project is a **classroom**, not just code.
+Every phase must teach **bizus, pulos do gato, nuances, pegadinhas, e forma de pensar.**
+
+### Teaching rules for every phase
+
+1. **Contextualize WHY, not just WHAT.** "Usamos `reinterpret_cast` PORQUE o buffer
+   e `char*` e precisamos tratar como `T*` — nao e so sintaxe, e questao de semantica."
+2. **Show the wrong way first (when instructive).** "Outro jeito seria X, mas isso
+   causa Y. Por isso fazemos Z." Isso ensina a reconhecer armadilhas.
+3. **Assembly comparison.** Quando o conceito for baixo nivel (pointer arithmetic,
+   virtual dispatch, alignment), mostre o assembly x86-64 equivalente. Isso constroi
+   intuicao de performance e prepara pra entrevistas de sistemas.
+4. **Mention the standard.** "Segundo o C++17 standard §8.5.1...". Nao precisa citar
+   numero de secao, mas sempre diga se e comportamento definido pelo padrao ou
+   extensao do compilador.
+5. **Nuance before simplicity.** "Tecnicamente `#pragma once` nao e ISO, mas todo
+   compilador suporta desde 2008. A pegadinha e com symlinks..." Ensine as minucias
+   — e isso que separa junior de pleno.
+6. **Pegadinhas explicitas.** Sinalize com "Pegadinha:" ou "Armadilha:" coisas que
+   parecem corretas mas nao sao. Ex: "Pegadinha: `buffer_ + offset_` com `T*` avanca
+   `offset_ * sizeof(T)` bytes, nao `offset_` bytes."
+7. **Call flow diagrams.** ASCII art mostrando entry point → func1 → func2 → return.
+   Ajuda a construir modelo mental da pilha de chamadas.
+
+### What the user should absorb from each phase
+
+- A sintaxe (como se escreve)
+- A semantica (o que significa)
+- O motivo (por que e assim e nao de outro jeito)
+- A armadilha (o que acontece se fizer errado)
+- O assembly (como isso vira instrucao de maquina)
+- A entrevista (que pergunta fariam sobre isso)
 
 ### Key concepts to teach through this project
 
