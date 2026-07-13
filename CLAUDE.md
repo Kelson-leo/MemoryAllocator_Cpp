@@ -119,16 +119,51 @@ Things to check before marking any phase "done":
 We won't solve all of these perfectly — this is junior level. But we document
 limitations in `TECHNICAL_DEBT.md` and show awareness.
 
-## Documentation discipline (same as raytracer)
+## Documentation discipline — CRITICAL
 
-Update these files as you go:
+This is the most important rule in this file. Every agent session MUST maintain
+the learning documentation. Without it, future sessions start blind.
+
+### Primary document: `docs/LEARNING_BOOK.md`
+
+One unified reference book organized by phases. This is THE document the user
+studies from. Each phase must contain:
+
+1. **Objective** — what this phase builds, in one sentence
+2. **Final code** — the complete implementation for this phase
+3. **Call flow** — entry point → internal calls → return, with explanation of each step
+4. **Assembly x86 comparison** — when pointer arithmetic or low-level ops are involved,
+   show the equivalent x86-64 asm so the user builds intuition
+5. **Concept table** — summary of every new concept learned in this phase
+6. **Limitations** — what this code does NOT handle (honesty is educational)
+
+Style rules:
+- Simple, technical, no forced analogies (the user is not a child)
+- Contextualize WHY something exists, not just WHAT it does
+- Show the bug/fix pattern when relevant ("first we tried X, but Y happens, so Z")
+
+### Supporting documents
 
 | File | When |
 |---|---|
-| `docs/PROGRESS.md` | After each phase (arena done, pool done, etc.) |
-| `docs/INTERVIEW_QA.md` | When a new concept is learned (alignment, coallescing, etc.) |
-| `docs/TECHNICAL_DEBT.md` | Known limitations, edge cases not handled, security notes |
-| `docs/CV_BULLETS.md` | When project has enough substance for resume bullets |
+| `docs/LEARNING_BOOK.md` | **After every phase/feature** — add new section |
+| `docs/PROGRESS.md` | After completing a phase — terse status update |
+| `docs/INTERVIEW_QA.md` | When a concept could be an interview question |
+| `docs/TECHNICAL_DEBT.md` | Known limitations, edge cases, security notes |
+| `docs/CV_BULLETS.md` | When project has enough substance for resume |
+| `docs/PO_PROMPT.md` | Static — prompt for external PO agent session |
+
+### Rule for all future agent sessions
+
+**Before writing any code**, read `docs/LEARNING_BOOK.md` and `docs/PROGRESS.md`
+to know the current phase and what's been taught.
+
+**After writing code**, update `docs/LEARNING_BOOK.md` with the new phase's
+explanations, call flows, and assembly comparisons. Then update `docs/PROGRESS.md`
+with current status.
+
+This ensures the user can study from the book without replaying the entire
+conversation history.
 
 ## Git discipline (same as raytracer)
 

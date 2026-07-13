@@ -13,6 +13,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(allocator_tests
     tests/test_main.cpp
+    tests/test_arena.cpp
 )
 
 target_link_libraries(allocator_tests gtest_main pthread)
