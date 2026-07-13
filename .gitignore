@@ -1,0 +1,9 @@
+build/
+*.o
+allocator_tests
+.vscode/
+.idea/
+*.bak
+*.swp
+*~
+docs/
