@@ -2,7 +2,8 @@
 
 [![C++](https://img.shields.io/badge/C++-17-blue.svg)](https://isocpp.org/)
 [![CMake](https://img.shields.io/badge/CMake-3.14+-brightgreen.svg)](https://cmake.org/)
-[![Tests](https://img.shields.io/badge/tests-19%2F19-green.svg)]()
+[![Tests](https://img.shields.io/badge/tests-21%2F21-green.svg)]()
+[![Thread-safe](https://img.shields.io/badge/thread-safe-yes-green.svg)]()
 [![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)]()
 
 Custom memory allocators built from scratch in C++17: arena, pool, free list, and a
@@ -15,7 +16,24 @@ full `malloc`/`free` implementation. Part of my C++ portfolio focused on systems
 | 1 | **Arena** | Bump allocator, `std::align`, `reinterpret_cast`, reset semantics |
 | 2 | **Pool** | Fixed-size blocks, embedded free list, O(1) alloc/free, `union` |
 | 3 | **Free List** | Variable-size, first-fit, splitting, coallescing, boundary tags |
-| 4 | **malloc** | `malloc`/`free`/`realloc`/`calloc`, `mmap` for large blocks, overflow check |
+| 4 | **malloc** | `malloc`/`free`/`realloc`/`calloc`, `mmap`, overflow check |
+
+All allocators are **thread-safe** (`std::mutex` + `std::lock_guard`).
+
+## Quick Usage
+
+```cpp
+#include "arena.h"
+char buf[1024];
+arena<char> scratch(buf, sizeof(buf));
+
+int* data = scratch.allocate(100);  // 100 ints
+float* temp = scratch.allocate(50); // 50 floats
+
+scratch.reset();  // free everything at once
+```
+
+See `docs/learning/06_PRACTICAL_USAGE.md` for pool, free list, malloc, and multi-threaded examples.
 
 ## Build & Run
 
@@ -51,4 +69,5 @@ tests/
   test_pool.cpp   - 4 tests
   test_freelist.cpp - 5 tests
   test_malloc.cpp   - 6 tests
+  test_concurrency.cpp - 2 tests
 ```
