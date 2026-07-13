@@ -24,16 +24,29 @@ All allocators are **thread-safe** (`std::mutex` + `std::lock_guard`).
 
 ```cpp
 #include "arena.h"
+#include "pool.h"
+#include "malloc.h"
+
+// Arena: bump allocator, reset to free all
 char buf[1024];
 arena<char> scratch(buf, sizeof(buf));
+int* data = scratch.allocate(100);     // 400 bytes
+scratch.reset();                       // "free" everything at once
 
-int* data = scratch.allocate(100);  // 100 ints
-float* temp = scratch.allocate(50); // 50 floats
+// Pool: fixed-size blocks, O(1) alloc/free
+struct Particle { float x, y, z; };
+pool<Particle, 1000> particle_pool;
+Particle* p = particle_pool.allocate(); // O(1)
+particle_pool.deallocate(p);            // O(1), returns to free list
 
-scratch.reset();  // free everything at once
+// malloc: full API with mmap for large blocks
+malloc_allocator ma;
+void* ptr = ma.malloc(8192);            // >= 4 KB → mmap
+ptr = ma.realloc(ptr, 16384);           // grow + copy data
+ma.free(ptr);
+
+// All allocators are thread-safe
 ```
-
-See `docs/learning/06_PRACTICAL_USAGE.md` for pool, free list, malloc, and multi-threaded examples.
 
 ## Build & Run
 
