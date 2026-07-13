@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <mutex>
 
 class freelist {
     struct header {
@@ -80,6 +81,7 @@ public:
     }
 
     void* allocate(std::size_t size) {
+        std::lock_guard<std::mutex> lock(mutex_);
         if (size < sizeof(void*)) size = sizeof(void*);
         size = (size + alignof(std::max_align_t) - 1) & ~(alignof(std::max_align_t) - 1);
 
@@ -97,6 +99,7 @@ public:
     }
 
     void deallocate(void* ptr) {
+        std::lock_guard<std::mutex> lock(mutex_);
         header* h = reinterpret_cast<header*>(
             reinterpret_cast<char*>(ptr) - header_size);
         h->size_and_flags |= free_flag;
@@ -104,13 +107,14 @@ public:
         coallesce(h);
     }
 
-    std::size_t block_size_of(void* ptr) const {
+    std::size_t block_size_of(void* ptr) {
+        std::lock_guard<std::mutex> lock(mutex_);
         const header* h = reinterpret_cast<const header*>(
             static_cast<const char*>(ptr) - header_size);
         return block_size(h);
     }
 
-    std::size_t used() const {
+    std::size_t used() {
         std::size_t total = 0;
         const header* current = reinterpret_cast<const header*>(heap_);
         const header* end = reinterpret_cast<const header*>(heap_ + capacity_);
@@ -128,4 +132,5 @@ public:
 private:
     char* heap_;
     std::size_t capacity_;
+    mutable std::mutex mutex_;
 };

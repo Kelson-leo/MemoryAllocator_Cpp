@@ -2,6 +2,7 @@
 
 #include "freelist.h"
 #include <cstring>
+#include <mutex>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -11,6 +12,7 @@ class malloc_allocator {
 
     char heap_[heap_size];
     freelist fl_;
+    mutable std::mutex mutex_;
 
     static void* mmap_alloc(std::size_t size) {
         std::size_t total = size + sizeof(std::size_t);
@@ -35,12 +37,14 @@ public:
     malloc_allocator() : fl_(heap_, heap_size) {}
 
     void* malloc(std::size_t size) {
+        std::lock_guard<std::mutex> lock(mutex_);
         if (size == 0) return nullptr;
         if (size >= mmap_threshold) return mmap_alloc(size);
         return fl_.allocate(size);
     }
 
     void free(void* ptr) {
+        std::lock_guard<std::mutex> lock(mutex_);
         if (!ptr) return;
         if (is_mmap_ptr(ptr)) {
             mmap_free(ptr, *reinterpret_cast<std::size_t*>(
@@ -51,10 +55,28 @@ public:
     }
 
     void* realloc(void* ptr, std::size_t new_size) {
-        if (!ptr) return malloc(new_size);
-        if (new_size == 0) { free(ptr); return nullptr; }
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (!ptr) {
+            if (new_size == 0) return nullptr;
+            if (new_size >= mmap_threshold) return mmap_alloc(new_size);
+            return fl_.allocate(new_size);
+        }
+        if (new_size == 0) {
+            if (is_mmap_ptr(ptr)) {
+                mmap_free(ptr, *reinterpret_cast<std::size_t*>(
+                    static_cast<char*>(ptr) - sizeof(std::size_t)));
+            } else {
+                fl_.deallocate(ptr);
+            }
+            return nullptr;
+        }
 
-        void* new_ptr = malloc(new_size);
+        void* new_ptr;
+        if (new_size >= mmap_threshold) {
+            new_ptr = mmap_alloc(new_size);
+        } else {
+            new_ptr = fl_.allocate(new_size);
+        }
         if (!new_ptr) return nullptr;
 
         std::size_t old_size;
@@ -64,24 +86,38 @@ public:
         } else {
             old_size = fl_.block_size_of(ptr);
             if (new_size <= old_size) {
-                free(new_ptr);
+                fl_.deallocate(new_ptr);
                 return ptr;
             }
         }
 
         std::size_t copy = old_size < new_size ? old_size : new_size;
         std::memcpy(new_ptr, ptr, copy);
-        free(ptr);
+
+        if (is_mmap_ptr(ptr)) {
+            mmap_free(ptr, old_size);
+        } else {
+            fl_.deallocate(ptr);
+        }
         return new_ptr;
     }
 
     void* calloc(std::size_t nmemb, std::size_t size) {
+        std::lock_guard<std::mutex> lock(mutex_);
         std::size_t total = nmemb * size;
         if (size != 0 && total / size != nmemb) return nullptr;
-        void* ptr = malloc(total);
+        void* ptr;
+        if (total >= mmap_threshold) {
+            ptr = mmap_alloc(total);
+        } else {
+            ptr = fl_.allocate(total);
+        }
         if (ptr) std::memset(ptr, 0, total);
         return ptr;
     }
 
-    std::size_t used() const { return fl_.used(); }
+    std::size_t used() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return fl_.used();
+    }
 };

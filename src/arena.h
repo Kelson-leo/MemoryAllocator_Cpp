@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <mutex>
 
 template <typename T>
 class arena {
@@ -12,6 +13,24 @@ public:
           capacity_(capacity_bytes) {}
 
     T* allocate(std::size_t n) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return allocate_unlocked(n);
+    }
+
+    void reset() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        offset_ = 0;
+    }
+
+    std::size_t used() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return offset_;
+    }
+
+    std::size_t capacity() const { return capacity_; }
+
+private:
+    T* allocate_unlocked(std::size_t n) {
         std::size_t size = n * sizeof(T);
         std::size_t space = capacity_ - offset_;
         void* ptr = buffer_ + offset_;
@@ -22,13 +41,8 @@ public:
         return static_cast<T*>(ptr);
     }
 
-    void reset() { offset_ = 0; }
-
-    std::size_t used() const { return offset_; }
-    std::size_t capacity() const { return capacity_; }
-
-private:
     char* buffer_;
     std::size_t offset_;
     std::size_t capacity_;
+    mutable std::mutex mutex_;
 };

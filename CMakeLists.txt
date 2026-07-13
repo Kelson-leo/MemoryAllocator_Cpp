@@ -17,7 +17,10 @@ add_executable(allocator_tests
     tests/test_pool.cpp
     tests/test_freelist.cpp
     tests/test_malloc.cpp
+    tests/test_concurrency.cpp
 )
+
+target_link_libraries(allocator_tests gtest_main pthread)
 
 target_link_libraries(allocator_tests gtest_main pthread)
 target_compile_options(allocator_tests PRIVATE -Wall -Wextra -Wpedantic)
