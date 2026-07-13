@@ -104,6 +104,12 @@ public:
         coallesce(h);
     }
 
+    std::size_t block_size_of(void* ptr) const {
+        const header* h = reinterpret_cast<const header*>(
+            static_cast<const char*>(ptr) - header_size);
+        return block_size(h);
+    }
+
     std::size_t used() const {
         std::size_t total = 0;
         const header* current = reinterpret_cast<const header*>(heap_);
