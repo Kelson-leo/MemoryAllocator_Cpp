@@ -10,80 +10,74 @@
 
 ## What new agent sessions need to know
 
-Read this first, then read `docs/PROGRESS.md` for current phase.
+Read these IN ORDER before writing any code:
+1. `docs/PROGRESS.md` — current phase, what's done
+2. `docs/learning/00_FUNDAMENTALS.md` — C++ concepts used throughout
+3. `docs/learning/01_arena.md` — Phase 1 details (or latest phase file)
+
+Then read `docs/TECHNICAL_DEBT.md` for known issues.
 Read `docs/INTERVIEW_QA.md` for concepts to explain in interviews.
-Read `docs/TECHNICAL_DEBT.md` for known issues.
 
-## Teaching approach — how this project teaches C++
+## CRITICAL: Documentation discipline
 
-The user is learning C++ while building. This project is a **classroom**, not just code.
-Every phase must teach **bizus, pulos do gato, nuances, pegadinhas, e forma de pensar.**
+**Every time code changes, documentation MUST be updated in the same commit.**
+No exceptions. A future agent session starts by reading docs, not code.
 
-### Teaching rules for every phase
+### Documentation structure
 
-1. **Contextualize WHY, not just WHAT.** "Usamos `reinterpret_cast` PORQUE o buffer
-   e `char*` e precisamos tratar como `T*` — nao e so sintaxe, e questao de semantica."
-2. **Show the wrong way first (when instructive).** "Outro jeito seria X, mas isso
-   causa Y. Por isso fazemos Z." Isso ensina a reconhecer armadilhas.
-3. **Assembly comparison.** Quando o conceito for baixo nivel (pointer arithmetic,
-   virtual dispatch, alignment), mostre o assembly x86-64 equivalente. Isso constroi
-   intuicao de performance e prepara pra entrevistas de sistemas.
-4. **Mention the standard.** "Segundo o C++17 standard §8.5.1...". Nao precisa citar
-   numero de secao, mas sempre diga se e comportamento definido pelo padrao ou
-   extensao do compilador.
-5. **Nuance before simplicity.** "Tecnicamente `#pragma once` nao e ISO, mas todo
-   compilador suporta desde 2008. A pegadinha e com symlinks..." Ensine as minucias
-   — e isso que separa junior de pleno.
-6. **Pegadinhas explicitas.** Sinalize com "Pegadinha:" ou "Armadilha:" coisas que
-   parecem corretas mas nao sao. Ex: "Pegadinha: `buffer_ + offset_` com `T*` avanca
-   `offset_ * sizeof(T)` bytes, nao `offset_` bytes."
-7. **Call flow diagrams.** ASCII art mostrando entry point → func1 → func2 → return.
-   Ajuda a construir modelo mental da pilha de chamadas.
+```
+docs/
+  learning/                    ← DIDACTIC MATERIAL (the "book")
+    00_FUNDAMENTALS.md         ← C++ concepts: pragma once, templates, namespaces, architecture, mindset
+    01_arena.md                ← Phase 1: arena allocator
+    02_pool.md                 ← Phase 2: pool allocator (next)
+    ...                        ← one file per phase, numbered
+  PROGRESS.md                  ← current phase, completion log
+  TECHNICAL_DEBT.md            ← known issues, limitations, security notes
+  INTERVIEW_QA.md              ← per-phase Q&A for interview prep
+  CV_BULLETS.md                ← resume bullets for this project
+  PO_PROMPT.md                 ← static — prompt for external PO agent
+```
 
-### What the user should absorb from each phase
+### Rules for `docs/learning/` files
 
-- A sintaxe (como se escreve)
-- A semantica (o que significa)
-- O motivo (por que e assim e nao de outro jeito)
-- A armadilha (o que acontece se fizer errado)
-- O assembly (como isso vira instrucao de maquina)
-- A entrevista (que pergunta fariam sobre isso)
+Each phase file must contain:
 
-### Key concepts to teach through this project
+1. **Fluxo de arquivos (modularizacao)** — which file calls which, entry points, TDD flow.
+   ASCII diagram showing: test file → header under test → dependencies.
+   Example:
+   ```
+   tests/test_arena.cpp → src/arena.h → <memory> (std::align)
+   ```
+2. **Fluxo interno de chamadas** — entry point → function → sub-function → return.
+   ASCII diagram for each key function.
+3. **Final code** — complete implementation for the phase.
+4. **Assembly x86 comparison** — when pointer arithmetic or low-level ops are involved.
+5. **Concepts table** — summary of every new concept learned.
+6. **Limitations** — what this code does NOT handle (honesty).
 
-| Phase | Concept | When it comes up |
-|---|---|---|
-| Arena | Stack vs heap, pointer arithmetic | Implementing `allocate()` |
-| Arena | `std::align`, `alignof`, `alignas` | Making allocations aligned |
-| Arena | `reinterpret_cast` vs `static_cast` vs C-cast | Casting `char*` buffer to `T*` |
-| Pool | Union, embedded data structures | Free list inside deallocated slots |
-| Pool | `static_assert`, compile-time checks | Ensuring `sizeof(T) >= sizeof(void*)` |
-| Free list | `sbrk` vs `mmap`, syscalls | Getting memory from OS |
-| Free list | `std::bit_cast` (C++20) or memcpy | Type-punning safely |
-| All | RAII in test fixtures | Test setup/teardown |
-| All | Undefined behavior — strict aliasing, use-after-free, double free | Writing safe allocator code |
-| All | AddressSanitizer, valgrind, UBSan | Debugging memory bugs |
-| All | `-Wall -Wextra -Wpedantic` | Zero-warning policy |
+### Rules for teaching ("bizus e pulos do gato")
 
-### Terminology the user must learn
+Every phase must teach:
 
-- **Alignment:** memory address must be multiple of N (e.g., `int` at address multiple of 4)
-- **Padding:** unused bytes between struct members to satisfy alignment
-- **Fragmentation (external):** free memory exists but split into small pieces, can't satisfy large request
-- **Fragmentation (internal):** allocated block is larger than requested (padding/metadata)
-- **Coallescing:** merging adjacent free blocks into one larger block
-- **Splitting:** dividing a large free block to satisfy a small request
-- **Bump allocator:** another name for arena (pointer bumps forward, never frees)
-- **Embedded free list:** the linked list of free blocks lives INSIDE the free blocks themselves
+| What the user must absorb | How to convey |
+|---|---|
+| **Sintaxe** — how to write it | Show the code |
+| **Semantica** — what it means | Explain in 1-2 sentences |
+| **Motivo** — why this and not another | "We use X because Y. If we used Z, this would happen..." |
+| **Armadilha** — what breaks if you do it wrong | "Pegadinha:" or "Armadilha:" prefix |
+| **Assembly** — how it becomes machine code | x86-64 snippet with explanation |
+| **Entrevista** — what they'd ask about this | Goes in INTERVIEW_QA.md |
 
-### C++ mindset for this project
+### Auto-update checklist (after every code change)
 
-1. **Read the standard.** When in doubt about alignment rules, strict aliasing, or UB, check cppreference.
-2. **Cast explicitly.** Never C-style cast `(T*)ptr`. Use `reinterpret_cast` (for pointer type changes) or `static_cast` (for related types).
-3. **Compile-time over runtime.** Use `static_assert` to catch errors at compile time (wrong alignment, wrong size).
-4. **Test edge cases.** What happens with `malloc(0)`? `free(nullptr)`? `realloc(ptr, 0)`?
-5. **Tooling is your friend.** `valgrind ./tests`, `-fsanitize=address`, `-fsanitize=undefined`.
-6. **Header-only with tests.** Library is `.h` files. Tests are `.cpp` files that `#include` them.
+- [ ] `docs/learning/0X_*.md` — add new phase or update existing
+- [ ] `docs/PROGRESS.md` — update current status
+- [ ] `docs/INTERVIEW_QA.md` — add Q&A for new concepts
+- [ ] `docs/TECHNICAL_DEBT.md` — add/remove issues as they're fixed/discovered
+- [ ] `docs/CV_BULLETS.md` — update when project has new resume-worthy features
+
+---
 
 ## Project structure
 
@@ -101,10 +95,12 @@ Systems/Allocator/
     test_freelist.cpp
     test_malloc.cpp
   docs/
-    PROGRESS.md       # Current phase, what's done
-    TECHNICAL_DEBT.md # Known issues, limitations
-    INTERVIEW_QA.md   # Questions + answers for interviews
-    CV_BULLETS.md     # Resume bullets for this project
+    learning/         # Didactic material (the "book")
+    PROGRESS.md
+    TECHNICAL_DEBT.md
+    INTERVIEW_QA.md
+    CV_BULLETS.md
+    PO_PROMPT.md
   README.md
   CMakeLists.txt
   .gitignore
@@ -113,94 +109,26 @@ Systems/Allocator/
 ## Build & Tools
 
 ```bash
-# Build and test
 cmake -B build && cmake --build build && ./build/allocator_tests
-
-# With sanitizers
-cmake -B build -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON
-cmake --build build
-
-# Memory check
 valgrind ./build/allocator_tests
 ```
 
 ## C++ rules for this project
 
-- **No `new`/`delete` in library code.** The allocator IS the memory manager. Use raw buffers and placement new only where needed.
-- **No C-style casts.** `reinterpret_cast` for pointer type changes, `static_cast` for sizes/offsets.
-- **No `memcpy` for type-punning.** Use `std::bit_cast` (C++20) or explicit `reinterpret_cast` with proper alignment.
-- **Header-only.** All allocator code in `.h` files. Tests in `.cpp`.
+- **No `new`/`delete` in library code.** Raw buffers + placement new only where needed.
+- **No C-style casts.** `reinterpret_cast` and `static_cast` only.
+- **Header-only.** All allocator code in `.h`. Tests in `.cpp`.
 - **`static_assert` liberally.** Catch alignment/size bugs at compile time.
-- **No `#include <iostream>` in library headers.** Use `assert` or return error codes. I/O is for tests/demos.
-- **Zero warnings.** `-Wall -Wextra -Wpedantic -Werror` in CI/debug builds.
+- **Zero warnings.** `-Wall -Wextra -Wpedantic`.
 
-## Security & correctness awareness (junior level)
-
-Things to check before marking any phase "done":
-- [ ] What happens if user calls `free(ptr)` twice? (double free detection or documented UB)
-- [ ] What happens if user passes wrong pointer to `free`? (not our allocator's pointer)
-- [ ] Alignment: does `allocate<T>(n)` return a pointer valid for type `T`?
-- [ ] Integer overflow: what if `size * n` overflows?
-- [ ] `malloc(0)`: return `nullptr` or a unique pointer? (C standard says implementation-defined)
-- [ ] `realloc(ptr, 0)`: equivalent to `free(ptr)`? (C standard says yes)
-
-We won't solve all of these perfectly — this is junior level. But we document
-limitations in `TECHNICAL_DEBT.md` and show awareness.
-
-## Documentation discipline — CRITICAL
-
-This is the most important rule in this file. Every agent session MUST maintain
-the learning documentation. Without it, future sessions start blind.
-
-### Primary document: `docs/LEARNING_BOOK.md`
-
-One unified reference book organized by phases. This is THE document the user
-studies from. Each phase must contain:
-
-1. **Objective** — what this phase builds, in one sentence
-2. **Final code** — the complete implementation for this phase
-3. **Call flow** — entry point → internal calls → return, with explanation of each step
-4. **Assembly x86 comparison** — when pointer arithmetic or low-level ops are involved,
-   show the equivalent x86-64 asm so the user builds intuition
-5. **Concept table** — summary of every new concept learned in this phase
-6. **Limitations** — what this code does NOT handle (honesty is educational)
-
-Style rules:
-- Simple, technical, no forced analogies (the user is not a child)
-- Contextualize WHY something exists, not just WHAT it does
-- Show the bug/fix pattern when relevant ("first we tried X, but Y happens, so Z")
-
-### Supporting documents
-
-| File | When |
-|---|---|
-| `docs/LEARNING_BOOK.md` | **After every phase/feature** — add new section |
-| `docs/PROGRESS.md` | After completing a phase — terse status update |
-| `docs/INTERVIEW_QA.md` | When a concept could be an interview question |
-| `docs/TECHNICAL_DEBT.md` | Known limitations, edge cases, security notes |
-| `docs/CV_BULLETS.md` | When project has enough substance for resume |
-| `docs/PO_PROMPT.md` | Static — prompt for external PO agent session |
-
-### Rule for all future agent sessions
-
-**Before writing any code**, read `docs/LEARNING_BOOK.md` and `docs/PROGRESS.md`
-to know the current phase and what's been taught.
-
-**After writing code**, update `docs/LEARNING_BOOK.md` with the new phase's
-explanations, call flows, and assembly comparisons. Then update `docs/PROGRESS.md`
-with current status.
-
-This ensures the user can study from the book without replaying the entire
-conversation history.
-
-## Git discipline (same as raytracer)
+## Git discipline
 
 - Commits in English, format: `type: description` (feat:, fix:, refactor:, docs:)
 - No co-authors, no AI references
 - One logical change per commit
-- Tests alongside code (not after)
+- Tests + docs in the same commit as the code they relate to
 
 ## Current phase
 
-**Phase 0:** Project setup — directory structure, CMakeLists.txt, test runner, README.
-**Next:** Phase 1 — Arena Allocator.
+**Phase 1 done:** Arena allocator with `std::align`, 4 tests.
+**Phase 2 next:** Pool allocator — fixed-size blocks, embedded free list, O(1).
